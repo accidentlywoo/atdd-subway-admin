@@ -16,7 +16,7 @@ public class LineStationFixture {
 
 	private static ObjectMapper objectMapper = new ObjectMapper();
 
-	public LineResponse 노선정보세팅_return_dto(LineRequest lineRequest) throws JsonProcessingException {
+	public static LineResponse 노선정보세팅_return_dto(LineRequest lineRequest) throws JsonProcessingException {
 		String req = objectMapper.writeValueAsString(lineRequest);
 
 		ExtractableResponse<Response> response = RestAssured.given().log().all()
@@ -42,7 +42,7 @@ public class LineStationFixture {
 				.extract();
 	}
 
-	public StationResponse 지하철역세팅_return_dto(StationRequest stationRequest) throws JsonProcessingException {
+	public static StationResponse 지하철역세팅_return_dto(StationRequest stationRequest) throws JsonProcessingException {
 		String req = objectMapper.writeValueAsString(stationRequest);
 
 		ExtractableResponse<Response> response = RestAssured.given().log().all()

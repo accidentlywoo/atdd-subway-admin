@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 import static nextstep.subway.LineStationFixture.노선정보세팅_return_response;
 import static nextstep.subway.LineStationFixture.지하철역세팅_return_response;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("지하철 노선 관련 기능")
 public class LineAcceptanceTest extends AcceptanceTest {
