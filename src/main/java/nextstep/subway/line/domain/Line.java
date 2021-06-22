@@ -1,6 +1,7 @@
 package nextstep.subway.line.domain;
 
 import nextstep.subway.common.BaseEntity;
+import nextstep.subway.station.domain.Station;
 
 import javax.persistence.*;
 
@@ -47,6 +48,24 @@ public class Line extends BaseEntity {
 
     public String color() {
         return color;
+    }
+
+    public List<Section> getSections() {
+        return sections;
+    }
+
+    public Section getUpStation() {
+        for (Section section: sections) {
+            if(section.getUpStation() != null) return section;
+        }
+        throw new IllegalStateException("상행선 종점 정보가 없는 잘못된 노선 정보입닌다.");
+    }
+
+    public Section getDownStation() {
+        for (Section section: sections) {
+            if(section.getDownStation() != null) return section;
+        }
+        throw new IllegalStateException("하행선 종점 정보가 없는 잘못된 노선 정보입닌다.");
     }
 
     public Line setSection(Section station) {
