@@ -1,19 +1,39 @@
 package nextstep.subway.line;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.restassured.RestAssured;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import nextstep.subway.AcceptanceTest;
+import nextstep.subway.line.domain.Section;
 import nextstep.subway.line.dto.LineRequest;
 import nextstep.subway.line.dto.LineResponse;
+import nextstep.subway.line.dto.SectionCreateReq;
+import nextstep.subway.station.domain.Station;
+import nextstep.subway.station.domain.StationRepository;
 import nextstep.subway.station.dto.StationRequest;
 import nextstep.subway.station.dto.StationResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 
-import static nextstep.subway.LineStationFixture.*;
+import java.util.Optional;
+
+import static nextstep.subway.LineStationFixture.노선정보세팅_return_dto;
+import static nextstep.subway.LineStationFixture.지하철역세팅_return_dto;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class SectionAcceptanceTest extends AcceptanceTest {
+
+	@Autowired
+	private StationRepository stationRepository;
+
+	@Autowired
+	private ObjectMapper objectMapper;
+
 	LineResponse lineResponse;
 
 	@BeforeEach
@@ -32,12 +52,28 @@ public class SectionAcceptanceTest extends AcceptanceTest {
 	}
 
 	@Test
-	public void 종점사이의_새로운역_상행연결_등록_성공() {
+	public void 종점사이의_새로운역_상행연결_등록_성공() throws JsonProcessingException {
 		// given 상행역정보
 		Long upStationId = lineResponse.getUpStationId();
-		
+
+		Station upStation = stationRepository.findById(upStationId).get();
+//		Station newStation = Station.create("새로운 역"); // 내부동작 호도리
+//		Section section = Section.create(upStation, newStation, 3);
+
 		// when + 새로운 station 생성 및 등록, 양 좀점보다 짧은 구간정보 역은 1m(?)차지
+		SectionCreateReq sectionCreateReq = new SectionCreateReq(upStation.getId(), "새로운역", 3);
+		String req = objectMapper.writeValueAsString(sectionCreateReq);
+
+		ExtractableResponse<Response> response = RestAssured.given().log().all()
+				.body(req)
+				.contentType(MediaType.APPLICATION_JSON_VALUE)
+				.when()
+				.post("/line/sections")
+				.then().log().all()
+				.extract();
 		// then 상행 - 새로운 구간 -
+
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
 	}
 
 	@Test
