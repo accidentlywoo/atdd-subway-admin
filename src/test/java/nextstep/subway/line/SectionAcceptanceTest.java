@@ -4,28 +4,25 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.RestAssured;
 import io.restassured.response.ExtractableResponse;
-import io.restassured.response.Response;
 import nextstep.subway.AcceptanceTest;
-import nextstep.subway.line.domain.Section;
 import nextstep.subway.line.dto.LineRequest;
-import nextstep.subway.line.dto.LineResponse;
 import nextstep.subway.line.dto.SectionCreateReq;
 import nextstep.subway.station.domain.Station;
 import nextstep.subway.station.domain.StationRepository;
 import nextstep.subway.station.dto.StationRequest;
+import io.restassured.response.Response;
 import nextstep.subway.station.dto.StationResponse;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
-import java.util.Optional;
-
-import static nextstep.subway.LineStationFixture.노선정보세팅_return_dto;
-import static nextstep.subway.LineStationFixture.지하철역세팅_return_dto;
+import static nextstep.subway.LineStationFixture.지하철역세팅_return_response;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@DisplayName("구간 추가 기능")
 public class SectionAcceptanceTest extends AcceptanceTest {
 
 	@Autowired
@@ -34,38 +31,59 @@ public class SectionAcceptanceTest extends AcceptanceTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
-	LineResponse lineResponse;
+	private Long upStationId;
+
+	private Long downStationId;
 
 	@BeforeEach
 	public void setUp() throws JsonProcessingException {
 		// given, line 생성 <- 상행약, 하행역 station 등록, 종점 및 거리 세팅
-		StationRequest stationRequest1 = new StationRequest();
-		stationRequest1.setName("잠실역");
-		StationResponse stationResponse1 = 지하철역세팅_return_dto(stationRequest1);
+		StationRequest stationRequest = new StationRequest();
+		stationRequest.setName("잠실역");
+		ExtractableResponse<Response> stationRes = 지하철역세팅_return_response(stationRequest);
+
+		StationResponse stationResponse = objectMapper.readValue(stationRes.response().asString(), StationResponse.class);
+
+		upStationId = stationResponse.getId();
 
 		StationRequest stationRequest2 = new StationRequest();
 		stationRequest2.setName("강남역");
-		StationResponse stationResponse2 = 지하철역세팅_return_dto(stationRequest2);
+		ExtractableResponse<Response> stationRes2 = 지하철역세팅_return_response(stationRequest2);
 
-		LineRequest lineRequest = new LineRequest("2호선", "yellow", stationResponse1.getId(), stationResponse2.getId(), 7);
-		lineResponse = 노선정보세팅_return_dto(lineRequest);
+		StationResponse stationResponse2 = objectMapper.readValue(stationRes2.response().asString(), StationResponse.class);
+
+		downStationId = stationResponse2.getId();
+
+		int distance = 7;
+
+		LineRequest lineRequest = new LineRequest("2호선", "yellow", upStationId, downStationId, distance);
+		String req = objectMapper.writeValueAsString(lineRequest);
+
+		ExtractableResponse<Response> response = RestAssured.given().log().all()
+				.body(req)
+				.contentType(MediaType.APPLICATION_JSON_VALUE)
+				.when()
+				.post("/lines")
+				.then().log().all()
+				.extract();
+
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.CREATED.value());
 	}
 
 	@Test
 	public void 종점사이의_새로운역_상행연결_등록_성공() throws JsonProcessingException {
-		// given 상행역정보
-		Long upStationId = lineResponse.getUpStationId();
-
+		// when
 		Station upStation = stationRepository.findById(upStationId).get();
+
 //		Station newStation = Station.create("새로운 역"); // 내부동작 호도리
 //		Section section = Section.create(upStation, newStation, 3);
 
 		// when + 새로운 station 생성 및 등록, 양 좀점보다 짧은 구간정보 역은 1m(?)차지
-		SectionCreateReq sectionCreateReq = new SectionCreateReq(upStation.getId(), "새로운역", 3);
-		String req = objectMapper.writeValueAsString(sectionCreateReq);
+		SectionCreateReq sectionCreateReq = new SectionCreateReq(upStation.getId(), "라인","새로운역", 3);
+		String newReq = objectMapper.writeValueAsString(sectionCreateReq);
 
-		ExtractableResponse<Response> response = RestAssured.given().log().all()
-				.body(req)
+		ExtractableResponse<Response> newResponse = RestAssured.given().log().all()
+				.body(newReq)
 				.contentType(MediaType.APPLICATION_JSON_VALUE)
 				.when()
 				.post("/line/sections")
@@ -73,7 +91,7 @@ public class SectionAcceptanceTest extends AcceptanceTest {
 				.extract();
 		// then 상행 - 새로운 구간 -
 
-		assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
+		assertThat(newResponse.statusCode()).isEqualTo(HttpStatus.OK.value());
 	}
 
 	@Test

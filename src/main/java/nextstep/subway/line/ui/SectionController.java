@@ -1,8 +1,12 @@
 package nextstep.subway.line.ui;
 
 import nextstep.subway.line.application.SectionService;
-import nextstep.subway.line.dto.LineRequest;
+import nextstep.subway.line.domain.Section;
+import nextstep.subway.line.dto.SectionCreateReq;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/line/sections")
@@ -14,7 +18,9 @@ public class SectionController {
 	}
 
 	@PostMapping
-	public void createSection() {
+	public ResponseEntity<Section> createSection(@RequestBody SectionCreateReq req) {
+		Section section = sectionService.createSection(req);
+		return ResponseEntity.created(URI.create("/line/sections" + section.getId())).body(section);
 	}
 
 	@GetMapping
